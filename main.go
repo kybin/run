@@ -117,6 +117,11 @@ func parseEnvsetFile(f string, env []string) ([]string, error) {
 	if f == "" {
 		return []string{}, nil
 	}
+	var err error
+	f, err = filepath.Abs(f)
+	if err != nil {
+		return nil, err
+	}
 	b, err := ioutil.ReadFile(f)
 	if err != nil {
 		return nil, err
@@ -132,6 +137,9 @@ func parseEnvsetFile(f string, env []string) ([]string, error) {
 			continue
 		}
 		envf = replaceEnvVar(envf, env)
+		if !filepath.IsAbs(envf) {
+			envf = filepath.Join(filepath.Dir(f), envf)
+		}
 		envfiles = append(envfiles, envf)
 	}
 	return envfiles, nil
@@ -142,6 +150,11 @@ func parseEnvsetFile(f string, env []string) ([]string, error) {
 func parseEnvFile(f string, env []string) ([]string, error) {
 	if f == "" {
 		return []string{}, nil
+	}
+	var err error
+	f, err = filepath.Abs(f)
+	if err != nil {
+		return nil, err
 	}
 	errNoFile := true
 	// env 파일경로 뒤에 물음표가 붙어있으면 그 파일이 없어도 에러를 내지 않음.
@@ -164,6 +177,10 @@ func parseEnvFile(f string, env []string) ([]string, error) {
 		return nil, err
 	}
 	s := string(b)
+	env = append([]string{
+		// run에서 사용되는 특별한 환경변수 추가
+		"HERE=" + filepath.Dir(f),
+	}, env...)
 	penv := []string{}
 	for _, l := range strings.Split(s, "\n") {
 		l = strings.TrimSpace(l)
@@ -243,7 +260,6 @@ func main() {
 		}
 		envfiles = append(envfiles, envf)
 	}
-
 	for _, envf := range envfiles {
 		envs, err := parseEnvFile(envf, env)
 		if err != nil {

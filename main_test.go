@@ -3,8 +3,15 @@ package main
 import (
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 )
+
+func srcDir() string {
+	_, f, _, _ := runtime.Caller(0)
+	d := filepath.Dir(f)
+	return d
+}
 
 func TestParseEnv(t *testing.T) {
 	cases := []struct {
@@ -42,6 +49,7 @@ func TestParseEnvfileValid(t *testing.T) {
 		"E=e",
 		"ABC=abc",
 		"ABCDE=abcde",
+		"ROOT=" + srcDir() + "/testdata",
 	}
 	f := "testdata/valid.env"
 	env := []string{}
@@ -56,13 +64,14 @@ func TestParseEnvfileValid(t *testing.T) {
 
 func TestParseEnvsetPaths(t *testing.T) {
 	want := []string{
-		"testdata/site/env/all.env",
-		"testdata/site/env/maya/all.env?",
-		"testdata/site/env/maya/lit.env?",
-		"testdata/site/show/test/show.env?",
+		srcDir() + "/testdata/site/site.env",
+		srcDir() + "/testdata/site/env/all.env",
+		srcDir() + "/testdata/site/env/maya/all.env?",
+		srcDir() + "/testdata/site/env/maya/lit.env?",
+		"/show/test/show.env?",
 	}
-	f := "testdata/site.envs"
-	env := []string{"SITE_ROOT=testdata/site", "PROGRAM=maya", "TEAM=lit", "SHOW=test"}
+	f := "testdata/site/env/site.envs"
+	env := []string{"PROGRAM=maya", "TEAM=lit", "SHOW=test"}
 	got, err := parseEnvsetFile(f, env)
 	if err != nil {
 		t.Fatalf("parseEnvsetPaths(%q, %v): unexpected error: %v", f, env, err)
@@ -74,16 +83,16 @@ func TestParseEnvsetPaths(t *testing.T) {
 
 func TestParseEnvsetEnvs(t *testing.T) {
 	want := []string{
-		"SITE_ROOT=testdata/site",
 		"PROGRAM=maya",
 		"TEAM=lit",
 		"SHOW=test",
+		"SITE_ROOT=" + srcDir() + "/testdata/site",
 		"ALL=all",
 		"MAYA_ALL=maya_all",
 		"MAYA_LIT=maya_all/lit",
 	}
-	f := "testdata/site.envs"
-	env := []string{"SITE_ROOT=testdata/site", "PROGRAM=maya", "TEAM=lit", "SHOW=test"}
+	f := "testdata/site/env/site.envs"
+	env := []string{"PROGRAM=maya", "TEAM=lit", "SHOW=test"}
 	got := env
 	envfiles, err := parseEnvsetFile(f, got)
 	if err != nil {
